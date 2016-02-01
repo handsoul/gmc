@@ -357,6 +357,11 @@ u8 ParseCmd_I(char * pCmdStr, CMD_ST *pstCmd)
     return 1;
 }
 
+/*
+ * 目前支持的命令如下.
+ * 考虑将命令写成列表的方式.
+ *
+ * */
 void ParseCmd(char * pCmdStr,CMD_ST *pstCmd)
 {
     switch(*pCmdStr)
