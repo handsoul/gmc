@@ -2,10 +2,11 @@
 #define __PARSER_H__
 
 // reference type definition.
-#include "DataProc.h"
+#include "DataType.h"
 
 // command seperator char
 #define CMD_SEPARATOR           '/'
+#define END_CHAR                '\0'
 
 #define SIG_PREFIX          'M'
 #define POS_PREFIX          'M'

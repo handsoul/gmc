@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <assert.h>
 #include "Parser.h"
+#include "SysCfg.h"
 
 CMD_ST g_stCmd = 
 {
@@ -12,19 +13,70 @@ CMD_ST g_stCmd =
 
 RUN_STATE_ST g_stRunState;
 
+#define SKIP_WHITE_SPACE(pCmdStr) \
+    while(*pCmdStr == ' ') \
+{++pCmdStr;}
+
 
 #define IS_DIGITAL(c) \
     ((c > '0') && (c < '9'))
 
-bool IsValidSigName(char * pSigName)
+// Get Value of Expression of Pos.
+bool EvalPosLexeme(char * pCmdStr, int *Value)
 {
-    if ((*pSigName != 'M' 
-        && *pSigName != 'H'))
+    return true;
+}
+
+int ParseExpression(char * pCmdStr)
+{
+    if (pCmdStr == NULL)
     {
-        return false;
+        return -1;
     }
 
-    return true;
+    char *pStart = pCmdStr;
+    char *pEnd = pCmdStr;
+    char scBackup;
+    int i = 0;
+    
+    if (*pEnd == '+'
+        || *pEnd == '-')
+    {
+        pEnd++; // 跳过第一个.
+    }
+
+    while(*pEnd != END_CHAR)
+    {
+        if (*pEnd == '+'
+            || *pEnd == '-')
+        {
+            scBackup = *pEnd;
+            *pEnd = END_CHAR;
+            fprintf(stderr,"lexeme %d = %s\n",++i,pStart);
+            *pEnd = scBackup;
+            pEnd++;
+            pStart = pEnd;
+        }
+        else
+        {
+            ++pEnd;
+        }
+
+        // Last Lexeme.
+        if (*pEnd == END_CHAR)
+        {
+            if (pEnd >= pStart+1)
+            {
+                fprintf(stderr,"lexeme %d = %s\n",++i,pStart);
+            }
+            else
+            {
+                fprintf(stderr,"Empty Lexeme\n");
+            }
+        }
+    }
+
+    return 1;
 }
 
 // 位置解析.
@@ -32,7 +84,48 @@ bool IsValidSigName(char * pSigName)
 // 完成绝对位置/相对位置的解析. 固定位置-配置.
 bool HfnGetPos( char * pCmdStr, CONDITION_POS_ST * pCondPos)
 {
-    return true;
+    // 可能的方式: 
+    // A: 绝对 -120+-20
+    // B: 相对 MX-+20, MA-MB
+    char *pStart;
+    char *pEnd;
+    s32 slPos = 0;
+
+    if (pCmdStr == NULL)
+    {
+        return false;
+    }
+
+    // 分解相对或绝对表达式.
+    if (*pCmdStr != '-' && *pCmdStr != '+')
+    {
+        pStart = pCmdStr+1; 
+        if (*pStart == '\0')
+        {
+            return false;
+        }
+    }
+    else
+    {
+        pStart = pCmdStr;
+    }
+#if 0
+    do
+    {
+        if ((pEnd = strchr(pStart,'+')) == NULL
+                || (pEnd = strchr(pStart,'-')) == NULL)
+        {
+        }
+    }while(*pStart != '\0');
+#endif
+    // 根据信号表查询可用的信号名.
+    // 尝试识别信号名.
+    if (GetSigIndexByName(pCmdStr) != -1)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 // 信号名称解析.
@@ -46,6 +139,19 @@ bool HfnGetSig(char * pCmdStr, CONDITION_SIG_ST * pCondSig)
 // 动作解析
 bool HfnGetAction(char *pCmdStr, ACTION_ST * pActionSt)
 {
+    if (pCmdStr == NULL)
+    {
+        return false;
+    }
+
+    // 目前仅支持速度设置.
+    if (*pCmdStr != 'p' && *pCmdStr != 'P')
+    {
+        return false;
+    }
+
+    pActionSt->m_iActionType = ACTION_TYPE_SPD;
+
     return true;
 }
 
@@ -146,7 +252,6 @@ u8 ParseCmd_S(char * pCmdStr,  CMD_ST *pstCmd)
     }
 
     fprintf(stderr,"\t%s:\t开始解析\n",pCmdStr);
-
     if (*pCmdStr != 'S' && *pCmdStr != 's')
     {
         assert(0);
@@ -154,7 +259,6 @@ u8 ParseCmd_S(char * pCmdStr,  CMD_ST *pstCmd)
     }
 
     pCmdStr++;
-
     if (*pCmdStr == 'h' || *pCmdStr == 'H')
     {
         ucSigLevel = 1;
@@ -169,9 +273,8 @@ u8 ParseCmd_S(char * pCmdStr,  CMD_ST *pstCmd)
     }
 
     errno = 0;
-
     pCmdStr++;
-    
+
     // 确认是否是位置,定位信号名.
     if (*pCmdStr == POS_PREFIX) // 使用的是指定位置的方式
     {
@@ -284,7 +387,7 @@ u8 ParseCmd_I(char * pCmdStr, CMD_ST *pstCmd)
 
     errno = 0;
     pCmdStr++;
-    
+
     // 确认是否是位置,定位信号名.
     if (*pCmdStr == POS_PREFIX) // 使用的是指定位置的方式
     {
@@ -359,8 +462,9 @@ u8 ParseCmd_I(char * pCmdStr, CMD_ST *pstCmd)
 
 /*
  * 目前支持的命令如下.
- * 考虑将命令写成列表的方式.
- *
+ * 1. 考虑将命令写成列表的方式.
+ * 2. 命令何时结束执行.命令结束执行条件. 执行了速度为0的命令.或运行范围已达到.
+ * 3. 命令何时启动: 正确解析了命令.包含了速度设置( > 0). 是否结束则不做判断. 若未指定速度.或速度为0,则认为命令执行结束.
  * */
 void ParseCmd(char * pCmdStr,CMD_ST *pstCmd)
 {
