@@ -15,19 +15,87 @@ RUN_STATE_ST g_stRunState;
 
 #define SKIP_WHITE_SPACE(pCmdStr) \
     while(*pCmdStr == ' ') \
-{++pCmdStr;}
+    {++pCmdStr;}
 
 
-#define IS_DIGITAL(c) \
-    ((c > '0') && (c < '9'))
+#define IS_DIGITAL_CHAR(c) \
+    ((c >= '0') && (c <= '9'))
 
-// Get Value of Expression of Pos.
-bool EvalPosLexeme(char * pCmdStr, int *Value)
+// 解析正确的数字
+bool GetDigit(char *pCmdStr, int *pslValue)
 {
+    if (pCmdStr == NULL || *pCmdStr == END_CHAR)
+    {
+        return false;
+    }
+
+    s32 slValule = 0;
+    int slSign = 0;
+
+    if (*pCmdStr == '+' )
+    {
+        slSign = 0;
+        pCmdStr++;
+    }
+    else if (*pCmdStr == '-')
+    {
+        slSign = -1;
+        pCmdStr++;
+    }
+
+    while (*pCmdStr != END_CHAR)
+    {
+        if (IS_DIGITAL_CHAR(*pCmdStr) == false)
+        {
+            return false; // 出现无法解析的字符.
+        }
+        
+        slValule += *pCmdStr - '0';
+
+        if (*(++pCmdStr) != END_CHAR)
+        {
+            slValule *= 10;
+        }
+    }
+
+    if (slSign < 0)
+    {
+        slValule =0-slValule;
+    }
+
+    *pslValue = slValule;
+
     return true;
 }
 
-int ParseExpression(char * pCmdStr)
+// 解析正确的位置代码, 
+// 位置代码的格式为: M0~MN.
+bool GetPosExpression(char * pCmdStr, int * pslValue)
+{
+    if (*pCmdStr != 'M' && *pCmdStr != 'm')
+    {
+        return false;
+    }
+
+    return GetPosValueByName(pCmdStr,pslValue);
+}
+
+bool GetPosValueByExpression(char * pCmdStr, int *pslValue)
+{
+    if (GetPosExpression(pCmdStr, pslValue) == true)
+    {
+        return true;
+    }
+    else if (GetDigit(pCmdStr,pslValue) == true)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+// GetDigit替换为求值的表达式即可.
+int ParsePosExpression(char * pCmdStr, int * pslValue)
 {
     if (pCmdStr == NULL)
     {
@@ -36,8 +104,11 @@ int ParseExpression(char * pCmdStr)
 
     char *pStart = pCmdStr;
     char *pEnd = pCmdStr;
-    char scBackup;
+    char scBackup = 0;
+    char scBackupLast = 0;
     int i = 0;
+    int slValue;
+    int slResult = 0;
     
     if (*pEnd == '+'
         || *pEnd == '-')
@@ -52,10 +123,33 @@ int ParseExpression(char * pCmdStr)
         {
             scBackup = *pEnd;
             *pEnd = END_CHAR;
-            fprintf(stderr,"lexeme %d = %s\n",++i,pStart);
+            ++i;
+            TRACE_PRINT("lexeme %d = %s\n",i,pStart);
+            if (GetPosValueByExpression(pStart,&slValue)==true)
+            {
+                if (i == 1)
+                {
+                    slResult = slValue;
+                }
+                else if (scBackupLast == '+')
+                {
+                    slResult += slValue;
+                }
+                else
+                {
+                    slResult -= slValue;
+                }
+                TRACE_PRINT("Result = %d\n", slResult);
+            }
+            else
+            {
+                TRACE_PRINT("\t%s not recognized\n",pStart);
+                break;
+            }
             *pEnd = scBackup;
             pEnd++;
             pStart = pEnd;
+            scBackupLast = scBackup;
         }
         else
         {
@@ -67,18 +161,42 @@ int ParseExpression(char * pCmdStr)
         {
             if (pEnd >= pStart+1)
             {
-                fprintf(stderr,"lexeme %d = %s\n",++i,pStart);
+                ++i;
+                TRACE_PRINT("lexeme %d = %s\n",i,pStart);
+                if (GetPosValueByExpression(pStart,&slValue)==false)
+                {
+                    TRACE_PRINT("\t%s not recognized\n",pStart);
+                    break;
+                }
+                else
+                {
+                    if (i == 1)
+                    {
+                        slResult = slValue;
+                    }
+                    else if (scBackupLast == '+')
+                    {
+                        slResult += slValue;
+                    }
+                    else
+                    {
+                        slResult -= slValue;
+                    }
+                }
+
+                TRACE_PRINT("Result = %d\n", slResult);
             }
             else
             {
-                fprintf(stderr,"Empty Lexeme\n");
+                TRACE_PRINT("Empty Lexeme\n");
             }
         }
     }
 
+    *pslValue = slResult;
+
     return 1;
 }
-
 // 位置解析.
 // 返回值: 解析成功/错误.
 // 完成绝对位置/相对位置的解析. 固定位置-配置.
@@ -96,32 +214,11 @@ bool HfnGetPos( char * pCmdStr, CONDITION_POS_ST * pCondPos)
         return false;
     }
 
-    // 分解相对或绝对表达式.
-    if (*pCmdStr != '-' && *pCmdStr != '+')
+    if (ParsePosExpression(pCmdStr,&slPos) == true)
     {
-        pStart = pCmdStr+1; 
-        if (*pStart == '\0')
-        {
-            return false;
-        }
-    }
-    else
-    {
-        pStart = pCmdStr;
-    }
-#if 0
-    do
-    {
-        if ((pEnd = strchr(pStart,'+')) == NULL
-                || (pEnd = strchr(pStart,'-')) == NULL)
-        {
-        }
-    }while(*pStart != '\0');
-#endif
-    // 根据信号表查询可用的信号名.
-    // 尝试识别信号名.
-    if (GetSigIndexByName(pCmdStr) != -1)
-    {
+        pCondPos->m_ucRelation = 0;
+        pCondPos->m_slOffset = 0;
+        pCondPos->m_slPos = slPos;
         return true;
     }
 
@@ -158,6 +255,10 @@ bool HfnGetAction(char *pCmdStr, ACTION_ST * pActionSt)
 /*设置运转 - 返回解析是否成功*/
 u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
 {
+
+    CONDITION_POS_ST stPos;
+    int slPos;
+
     if(pCmdStr == NULL)
     {
         return 0;
@@ -171,21 +272,19 @@ u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
         return 0;
     }
 
-    // r240
-    errno = 0;
-    int val = strtol(pCmdStr+1,NULL,10);
-    if (errno != 0)
+    pCmdStr++;
+    
+    if (HfnGetPos(pCmdStr, &stPos) == false)
     {
         fprintf(stderr,"解析错误");
         return 0;
     }
 
-
-    fprintf(stderr,"\t设置目标位置:%d\n",val);
+    fprintf(stderr,"\t设置目标位置:%d\n",stPos.m_slPos);;
 
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_POS;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionPos.m_slPos = val;
+    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionPos.m_slPos = stPos.m_slPos;
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionPos.m_ucType = 0;
     pstCmd->m_ucLen++;
 
@@ -320,8 +419,8 @@ u8 ParseCmd_S(char * pCmdStr,  CMD_ST *pstCmd)
     *pEnd = scBackup;
 
     // sh/sl.
-    fprintf(stderr,"\t设置信号:%s 为 %d,位置:%s\n",
-            s_ascSigBuf,ucSigLevel,s_ascPosBuf);
+    fprintf(stderr,"\t设置信号:%s 为 %d,位置:%d\n",
+            s_ascSigBuf,ucSigLevel,stPos.m_slPos);
 
 #if 0
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
@@ -445,8 +544,8 @@ u8 ParseCmd_I(char * pCmdStr, CMD_ST *pstCmd)
     }
 
     // sh/sl.
-    fprintf(stderr,"\t查询信号:%s ,位置:%s，若信号值为%d，执行动作%s\n",
-            s_ascSigBuf,s_ascPosBuf,ucSigLevel,s_ascActionBuf);
+    fprintf(stderr,"\t查询信号:%s ,位置:%d，若信号值为%d，执行动作%s\n",
+            s_ascSigBuf,stPos.m_slPos,ucSigLevel,s_ascActionBuf);
 
 #if 0
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;

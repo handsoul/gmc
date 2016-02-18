@@ -27,6 +27,14 @@
     #define ERRINFO(format...)
 #endif
 
+//#define VERBOSE_PRINT
+
+#ifdef VERBOSE_PRINT
+#define TRACE_PRINT ERRINFO
+#else
+#define TRACE_PRINT(format...)
+#endif
+
 // 资源类型: 数字输入.
 typedef struct tagResourceItemDI
 {

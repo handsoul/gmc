@@ -3,6 +3,7 @@
 #include <string.h>
 
 
+// 速度代码.
 const s32 g_aslSpdTable[SPEED_MAX_INDX] = 
 {
     0,
@@ -16,6 +17,7 @@ const s32 g_aslSpdTable[SPEED_MAX_INDX] =
     80,
 };
 
+// 位置代码.
 POS_NAME_ST g_astPosTable[] = 
 {
     {"MA" , -50},
@@ -34,6 +36,8 @@ POS_NAME_ST g_astPosTable[] =
     {"M9" ,  80},
     {"M10",  90},
 };
+
+// 信号名代码. O
 
 
 s32 GetSigIndexByName(const char * pSigName)
