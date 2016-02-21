@@ -1,6 +1,6 @@
 CC=gcc-5.3.0
 CFLAGS+=-Wall -Wextra -m32 -g
-LDFLAGS+= -m32
+LDFLAGS+=-m32 -g
 EXECUTABLEFILE=simulator
 
 sources= main.c Parser.c SysCfg.c
@@ -11,7 +11,7 @@ all:$(EXECUTABLEFILE)
 %.d:%.c
 	set -e;\
 	rm -f $@;\
-	$(CC) -MM $(CPPFLAGS) $< > $@.;\
+	$(CC) -MM $(CFLAGS) $< > $@.;\
 	sed 's,/($*/)/.o[ :]*,/1.o $@ : ,g' < $@.> $@;\
 	rm -f $@.
 

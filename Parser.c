@@ -144,7 +144,7 @@ int ParsePosExpression(char * pCmdStr, int * pslValue)
             else
             {
                 TRACE_PRINT("\t%s not recognized\n",pStart);
-                break;
+                return 0;
             }
             *pEnd = scBackup;
             pEnd++;
@@ -166,7 +166,7 @@ int ParsePosExpression(char * pCmdStr, int * pslValue)
                 if (GetPosValueByExpression(pStart,&slValue)==false)
                 {
                     TRACE_PRINT("\t%s not recognized\n",pStart);
-                    break;
+                    return false; // 出现了无法解析的表达式.
                 }
                 else
                 {
@@ -409,7 +409,7 @@ u8 ParseCmd_S(char * pCmdStr,  CMD_ST *pstCmd)
     *pEnd = '\0';
     if (HfnGetPos(pCmdStr,&stPos) == false)
     {
-        ERRINFO("未指定有效的信号名");
+        ERRINFO("\t位置表达式非法:%s\n\t当前命令解析退出\n",pCmdStr);
     }
     else
     {
