@@ -3,7 +3,7 @@ CFLAGS+=-Wall -Wextra -m32 -g
 LDFLAGS+=-m32 -g
 EXECUTABLEFILE=simulator
 
-sources= main.c Parser.c SysCfg.c
+sources= main.c Parser.c SysCfg.c Execute.c
 
 all:$(EXECUTABLEFILE)
 .PHONY:all
