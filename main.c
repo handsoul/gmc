@@ -5,7 +5,8 @@
 
 
 //const char * pCmd = "r240/p9/sh120HC/shM7-20MC/ih230-20MA-p5/ih230-MA-p0/sl240MA";
-const char * pCmd = "r240/p9/sh120HC/shM7-20MC/ih230-20MA-p5/ih230MA-p0/sl240MA";
+const char * pCmd = "r240/p9/sh120HC/shM7-20MC/ih230-30MA-p5/ih230MA-p0/sl240MA";
+
 
 int main(void)
 {

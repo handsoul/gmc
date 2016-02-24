@@ -6,6 +6,12 @@
 #include "Parser.h"
 #include "SysCfg.h"
 
+// TODO: 1. 完成解析过程中对解析过程的填充.
+//       2. step 1完成后可以继续完成执行器部分
+//       3. 执行器完成后.实现了一些驱动无关的顶层设计.
+//       4. 完成实际的驱动设计即可. (硬件设计完成后)
+//       5. 最终实现: 动作执行和回采的回环过程. 并调整回环测量过程以达到最终效果.
+
 CMD_ST g_stCmd = 
 {
     .m_ucLen = 0,
@@ -247,6 +253,15 @@ bool HfnGetAction(char *pCmdStr, ACTION_ST * pActionSt)
         return false;
     }
 
+    // p后面跟着速度档位.
+    ++pCmdStr;
+
+    if (GetDigit(pCmdStr,&pActionSt->m_stActionSpeed.m_slSpeed) == false)
+    {
+        return false;
+    }
+
+    // 速度档位.
     pActionSt->m_iActionType = ACTION_TYPE_SPD;
 
     return true;
@@ -311,14 +326,14 @@ u8 ParseCmd_P(char * pCmdStr, CMD_ST *pstCmd)
 
     // r240
     errno = 0;
-    int val = strtol(pCmdStr+1,NULL,10);
+    int val = strtol(pCmdStr+1,NULL,10);// TODO: 替换为GetDigit.
     if (errno != 0)
     {
         fprintf(stderr,"解析错误");
         return 0;
     }
 
-    fprintf(stderr,"\t设置目标速度:`%d\n",val);
+    fprintf(stderr,"\t设置目标速度:%d\n",val);
 
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_SPD;
@@ -546,6 +561,8 @@ u8 ParseCmd_I(char * pCmdStr, CMD_ST *pstCmd)
     // sh/sl.
     fprintf(stderr,"\t查询信号:%s ,位置:%d，若信号值为%d，执行动作%s\n",
             s_ascSigBuf,stPos.m_slPos,ucSigLevel,s_ascActionBuf);
+
+
 
 #if 0
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
