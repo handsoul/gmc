@@ -19,8 +19,7 @@ CMD_ST g_stCmd =
 
 RUN_STATE_ST g_stRunState;
 
-#define SKIP_WHITE_SPACE(pCmdStr) \
-    while(*pCmdStr == ' ') \
+#define SKIP_WHITE_SPACE(pCmdStr) \ while(*pCmdStr == ' ') \
     {++pCmdStr;}
 
 
@@ -267,12 +266,12 @@ bool HfnGetAction(char *pCmdStr, ACTION_ST * pActionSt)
     return true;
 }
 
+
 /*设置运转 - 返回解析是否成功*/
 u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
 {
 
     CONDITION_POS_ST stPos;
-    int slPos;
 
     if(pCmdStr == NULL)
     {
@@ -297,7 +296,7 @@ u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
 
     fprintf(stderr,"\t设置目标位置:%d\n",stPos.m_slPos);;
 
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
+    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE; // 无条件执行一次即可.用于设定参数.此时的场景是设置运动的终点位置.(中途可能会停止)
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_POS;
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionPos.m_slPos = stPos.m_slPos;
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionPos.m_ucType = 0;
@@ -311,6 +310,7 @@ u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
 // speed set.
 u8 ParseCmd_P(char * pCmdStr, CMD_ST *pstCmd)
 {
+    s32 slSpdSeq = 0;
     if(pCmdStr == NULL)
     {
         return 0;
@@ -324,20 +324,20 @@ u8 ParseCmd_P(char * pCmdStr, CMD_ST *pstCmd)
         return 0;
     }
 
-    // r240
-    errno = 0;
-    int val = strtol(pCmdStr+1,NULL,10);// TODO: 替换为GetDigit.
-    if (errno != 0)
+    pCmdStr++;// 跳过字符[pP]
+
+    if (GetDigit(pCmdStr,&slSpdSeq) == false)
     {
-        fprintf(stderr,"解析错误");
+        ERRINFO("速度指针解析错误");
         return 0;
     }
 
-    fprintf(stderr,"\t设置目标速度:%d\n",val);
+    fprintf(stderr,"\t设置目标速度:%d\n",slSpdSeq);
 
+    // 执行速度切换的动作.
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_SPD;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionSpeed.m_slSpeed = val;
+    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionSpeed.m_slSpeed = slSpdSeq;
     pstCmd->m_ucLen++;
 
     fprintf(stderr,"\t解析完成,命令ID = %u\n",(unsigned)pstCmd->m_ucLen);
@@ -562,7 +562,8 @@ u8 ParseCmd_I(char * pCmdStr, CMD_ST *pstCmd)
     fprintf(stderr,"\t查询信号:%s ,位置:%d，若信号值为%d，执行动作%s\n",
             s_ascSigBuf,stPos.m_slPos,ucSigLevel,s_ascActionBuf);
 
-
+    // 为了兼容性考虑.需要将相关的单命令解析函数抽离出来,并适当组合.以适当匹配各情况
+    // 比如这里可能是设置IO.也可能是停止.也可能是设置新的运行目标.
 
 #if 0
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;

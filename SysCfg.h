@@ -8,6 +8,14 @@ typedef struct tagPosNameValue
     s32 m_slPos;        // 位置
 }POS_NAME_ST;
 
+typedef struct tagSigNameValue
+{
+    const char * m_pscName; // 位置名称.
+    s32 m_slSigIndex;        // 位置
+}SIG_NAME_ST;
+
+//
+
 // 速度-索引表.
 typedef enum tagEnumSpd
 {

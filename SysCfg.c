@@ -38,6 +38,24 @@ POS_NAME_ST g_astPosTable[] =
 };
 
 // 信号名代码. O
+POS_NAME_ST g_astSigTable[] = 
+{
+    {"MA" , 0},
+    {"MB" , 1},
+    {"MC" , 2},
+    {"MD" , 3},
+    {"ME" , 4},
+    {"M1" , 5},
+    {"M2" , 6},
+    {"M3" , 7},
+    {"M4" , 8}, 
+    {"M5" , 9},
+    {"M6" , 10},
+    {"M7" , 11},
+    {"M8" , 12},
+    {"M9" , 13},
+    {"M10", 14},
+};
 
 
 s32 GetSigIndexByName(const char * pSigName)
