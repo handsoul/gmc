@@ -247,21 +247,54 @@ bool HfnGetAction(char *pCmdStr, ACTION_ST * pActionSt)
     }
 
     // 目前仅支持速度设置.
-    if (*pCmdStr != 'p' && *pCmdStr != 'P')
+    if (*pCmdStr == 'p' || *pCmdStr != 'P')
+    {
+        // p后面跟着速度档位.
+        ++pCmdStr;
+
+        if (GetDigit(pCmdStr,&pActionSt->m_stActionSpeed.m_slSpeed) == false)
+        {
+            return false;
+        }
+
+        // 速度档位.
+        pActionSt->m_iActionType = ACTION_TYPE_SPD;
+
+        return true;
+    }
+    else if (*pCmdStr == 'S' || *pCmdStr == 's') // 有可能是设置运行位置.
+    {
+        
+    }
+    else if (*pCmdStr == 'r' || *pCmdStr == 'R') // 重新设置新的运行目标.
+    {
+
+    }
+
+    return false;
+}
+
+
+bool HfnParseActionR(char * pCmdStr, ACTION_ST * pstAction)
+{
+    CONDITION_POS_ST stPos;
+
+    if(pCmdStr == NULL 
+       || (*pCmdStr != 'R' && *pCmdStr != 'r'))
     {
         return false;
     }
 
-    // p后面跟着速度档位.
-    ++pCmdStr;
-
-    if (GetDigit(pCmdStr,&pActionSt->m_stActionSpeed.m_slSpeed) == false)
+    pCmdStr++;
+    
+    if (HfnGetPos(pCmdStr, &stPos) == false)
     {
         return false;
     }
 
-    // 速度档位.
-    pActionSt->m_iActionType = ACTION_TYPE_SPD;
+    pstAction->m_iActionType = ACTION_TYPE_POS;
+    pstAction->m_stActionPos.m_slPos = stPos.m_slPos;
+    pstAction->m_stActionPos.m_ucType = 0;
 
     return true;
 }
@@ -271,7 +304,7 @@ bool HfnGetAction(char *pCmdStr, ACTION_ST * pActionSt)
 u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
 {
 
-    CONDITION_POS_ST stPos;
+    ACTION_ST stAction;
 
     if(pCmdStr == NULL)
     {
@@ -280,26 +313,17 @@ u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
 
     fprintf(stderr,"\t%s:\t开始解析\n",pCmdStr);
 
-    if (*pCmdStr != 'R' && *pCmdStr != 'r')
-    {
-        assert(0);
-        return 0;
-    }
-
-    pCmdStr++;
-    
-    if (HfnGetPos(pCmdStr, &stPos) == false)
+   
+    if (HfnParseActionR(pCmdStr, &stAction) == false)
     {
         fprintf(stderr,"解析错误");
         return 0;
     }
 
-    fprintf(stderr,"\t设置目标位置:%d\n",stPos.m_slPos);;
+    fprintf(stderr,"\t设置目标位置:%d\n",stAction.m_stActionPos.m_slPos);
 
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE; // 无条件执行一次即可.用于设定参数.此时的场景是设置运动的终点位置.(中途可能会停止)
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_POS;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionPos.m_slPos = stPos.m_slPos;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionPos.m_ucType = 0;
+    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction = stAction;
     pstCmd->m_ucLen++;
 
     fprintf(stderr,"\t解析完成,命令ID = %u\n",(unsigned)pstCmd->m_ucLen);
@@ -307,21 +331,14 @@ u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
     return 1;
 }
 
-// speed set.
-u8 ParseCmd_P(char * pCmdStr, CMD_ST *pstCmd)
+
+bool HfnParseActionP(char * pCmdStr, ACTION_ST * pstAction)
 {
     s32 slSpdSeq = 0;
-    if(pCmdStr == NULL)
+    if (pCmdStr == NULL
+       || (*pCmdStr != 'P' && *pCmdStr != 'p'))
     {
-        return 0;
-    }
-
-    fprintf(stderr,"\t%s:\t开始解析\n",pCmdStr);
-
-    if (*pCmdStr != 'P' && *pCmdStr != 'p')
-    {
-        assert(0);
-        return 0;
+        return false;
     }
 
     pCmdStr++;// 跳过字符[pP]
@@ -329,21 +346,50 @@ u8 ParseCmd_P(char * pCmdStr, CMD_ST *pstCmd)
     if (GetDigit(pCmdStr,&slSpdSeq) == false)
     {
         ERRINFO("速度指针解析错误");
+        return false;
+    }
+
+    pstAction->m_iActionType = ACTION_TYPE_POS;
+    pstAction->m_stActionPos.m_slPos = slSpdSeq;
+ 
+    return true;
+}
+
+// speed set.
+u8 ParseCmd_P(char * pCmdStr, CMD_ST *pstCmd)
+{
+    ACTION_ST stAction;
+    if(pCmdStr == NULL)
+    {
         return 0;
     }
 
-    fprintf(stderr,"\t设置目标速度:%d\n",slSpdSeq);
+    fprintf(stderr,"\t%s:\t开始解析\n",pCmdStr);
+
+    if (HfnParseActionP(pCmdStr,&stAction) == false)
+    {
+        ERRINFO("P指令解析错误");
+        return 0;
+    }
+
+    fprintf(stderr,"\t设置目标速度:%d\n",stAction.m_stActionSpeed.m_slSpeed);
 
     // 执行速度切换的动作.
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_SPD;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionSpeed.m_slSpeed = slSpdSeq;
+    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction = stAction;
     pstCmd->m_ucLen++;
 
     fprintf(stderr,"\t解析完成,命令ID = %u\n",(unsigned)pstCmd->m_ucLen);
 
     return 1;
 }
+
+
+bool HfnParseActionS(char * pCmdStr, ACTION_ST * pstAction)
+{
+    return true;
+}
+
 // 设置IO. / shM7.
 // 信号名称 - shM7.
 // 格式: setio = sh + pos + sigName
@@ -449,6 +495,22 @@ u8 ParseCmd_S(char * pCmdStr,  CMD_ST *pstCmd)
     return 1;
 }
 
+void ActionToString(const ACTION_ST * pstAction, char * pStr)
+{
+    if (pstAction->m_iActionType == ACTION_TYPE_SPD)
+    {
+        sprintf(pStr,"设置运行速度为%d",pstAction->m_stActionSpeed.m_slSpeed);
+    }
+    else if (pstAction->m_iActionType == ACTION_TYPE_POS)
+    {
+        sprintf(pStr,"设置运行目标位置为%d",pstAction->m_stActionPos.m_slPos);
+    }
+    else
+    {
+        assert(0);
+    }
+}
+
 // 查询信号.
 // 根据查询条件执行动作.
 // 格式:
@@ -472,8 +534,7 @@ u8 ParseCmd_I(char * pCmdStr, CMD_ST *pstCmd)
     ACTION_ST   stAction;
 
     if(pCmdStr == NULL)
-    {
-        return 0;
+    { return 0;
     }
 
     fprintf(stderr,"\t%s:\t开始解析\n",pCmdStr);
@@ -558,18 +619,14 @@ u8 ParseCmd_I(char * pCmdStr, CMD_ST *pstCmd)
         return 0;
     }
 
-    // sh/sl.
-    fprintf(stderr,"\t查询信号:%s ,位置:%d，若信号值为%d，执行动作%s\n",
+    // ih/il.
+    ActionToString(&stAction,(char*)s_ascActionBuf);
+    fprintf(stderr,"\t查询信号:%s ,位置:%d，若信号值为%d，执行动作: %s\n",
             s_ascSigBuf,stPos.m_slPos,ucSigLevel,s_ascActionBuf);
 
     // 为了兼容性考虑.需要将相关的单命令解析函数抽离出来,并适当组合.以适当匹配各情况
     // 比如这里可能是设置IO.也可能是停止.也可能是设置新的运行目标.
 
-#if 0
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_SPD;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionSpeed.m_slSpeed = val;
-#endif
     pstCmd->m_ucLen++;
 
     fprintf(stderr,"\t解析完成,命令ID = %u\n",(unsigned)pstCmd->m_ucLen);
