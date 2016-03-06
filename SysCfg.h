@@ -36,5 +36,6 @@ extern const s32 g_aslSpdTable[SPEED_MAX_INDX];
 extern s32 GetPosIndexByName(const char * pSigName);
 extern bool GetPosValueByName(const char * pPosName, s32 *pPosValue);
 extern s32 GetSigIndexByName(const char * pSigName);
+extern bool GetSigNameByID(s32 slSigID, char * pSigName);
 
 #endif

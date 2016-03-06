@@ -235,45 +235,16 @@ bool HfnGetPos( char * pCmdStr, CONDITION_POS_ST * pCondPos)
 // 完成信号名 - 信号资源的映射.
 bool HfnGetSig(char * pCmdStr, CONDITION_SIG_ST * pCondSig)
 {
-    return true;
-}
-
-// 动作解析
-bool HfnGetAction(char *pCmdStr, ACTION_ST * pActionSt)
-{
-    if (pCmdStr == NULL)
+    s32 slSigID = 0;
+    if ((slSigID = GetSigIndexByName(pCmdStr)) < 0)
     {
         return false;
     }
 
-    // 目前仅支持速度设置.
-    if (*pCmdStr == 'p' || *pCmdStr != 'P')
-    {
-        // p后面跟着速度档位.
-        ++pCmdStr;
+    pCondSig->m_iRid = slSigID;
 
-        if (GetDigit(pCmdStr,&pActionSt->m_stActionSpeed.m_slSpeed) == false)
-        {
-            return false;
-        }
-
-        // 速度档位.
-        pActionSt->m_iActionType = ACTION_TYPE_SPD;
-
-        return true;
-    }
-    else if (*pCmdStr == 'S' || *pCmdStr == 's') // 有可能是设置运行位置.
-    {
-        
-    }
-    else if (*pCmdStr == 'r' || *pCmdStr == 'R') // 重新设置新的运行目标.
-    {
-
-    }
-
-    return false;
+    return true;
 }
-
 
 bool HfnParseActionR(char * pCmdStr, ACTION_ST * pstAction)
 {
@@ -297,6 +268,128 @@ bool HfnParseActionR(char * pCmdStr, ACTION_ST * pstAction)
     pstAction->m_stActionPos.m_ucType = 0;
 
     return true;
+}
+
+bool HfnParseActionP(char * pCmdStr, ACTION_ST * pstAction)
+{
+    s32 slSpdSeq = 0;
+    if (pCmdStr == NULL
+       || (*pCmdStr != 'P' && *pCmdStr != 'p'))
+    {
+        return false;
+    }
+
+    pCmdStr++;// 跳过字符[pP]
+
+    if (GetDigit(pCmdStr,&slSpdSeq) == false)
+    {
+        ERRINFO("速度指针解析错误");
+        return false;
+    }
+
+    pstAction->m_iActionType = ACTION_TYPE_POS;
+    pstAction->m_stActionPos.m_slPos = slSpdSeq;
+ 
+    return true;
+}
+
+bool HfnParseActionS(char * pCmdStr, ACTION_ST * pstAction)
+{
+
+    u8 ucSigLevel = 0xFF;
+    char * pEnd;
+    char * pStart;
+    char scBackup;
+    CONDITION_POS_ST stPos;
+    CONDITION_SIG_ST stSig;
+
+    if(pCmdStr == NULL
+       || (*pCmdStr != 'S' && *pCmdStr != 's'))
+    {
+        return false;
+    }
+
+    pCmdStr++;
+    if (*pCmdStr == 'h' || *pCmdStr == 'H')
+    {
+        ucSigLevel = 1;
+    }
+    else if (*pCmdStr == 'l' || *pCmdStr == 'L')
+    {
+        ucSigLevel = 0;
+    }  
+    else
+    {
+        return false;
+    }
+
+    pCmdStr++;
+
+    // 确认是否是位置,定位信号名.
+    if (*pCmdStr == POS_PREFIX) // 使用的是指定位置的方式
+    {
+        pStart = pCmdStr + 1;
+    }
+    else
+    {
+        pStart = pCmdStr;
+    }
+
+    // 查找有效信号名称.
+    if ((pEnd = strchr(pStart,'H')) == NULL
+            &&(pEnd = strchr(pStart,'M')) == NULL) 
+    {
+        ERRINFO("未指定有效的信号名");
+        return 0;
+    }
+
+    // 确认信号.
+    if (HfnGetSig(pEnd,&stSig) == false)
+    {
+        ERRINFO("未指定有效的信号名");
+        return false;
+    }
+
+    // 确定位置条件.
+    scBackup = *pEnd;
+    *pEnd = '\0';
+    if (HfnGetPos(pCmdStr,&stPos) == false)
+    {
+        ERRINFO("\t位置表达式非法:%s\n\t当前命令解析退出\n",pCmdStr);
+    }
+    *pEnd = scBackup;
+
+    pstAction->m_iActionType = ACTION_TYPE_SIG;
+    pstAction->m_stActionSig.m_slPos = stPos.m_slPos;
+    pstAction->m_stActionSig.m_slSetVal = ucSigLevel;
+    pstAction->m_stActionSig.m_ucRid = stSig.m_iRid;
+
+    return true;
+}
+
+
+// 动作解析
+bool HfnGetAction(char *pCmdStr, ACTION_ST * pstAction)
+{
+    if (pCmdStr == NULL)
+    {
+        return false;
+    }
+
+    if (*pCmdStr == 'p' || *pCmdStr != 'P')
+    {
+        return HfnParseActionP(pCmdStr,pstAction);
+    }
+    else if (*pCmdStr == 'S' || *pCmdStr == 's')
+    {
+        return HfnParseActionS(pCmdStr,pstAction);
+    }
+    else if (*pCmdStr == 'r' || *pCmdStr == 'R')
+    {
+        return HfnParseActionR(pCmdStr,pstAction);
+    }
+
+    return false;
 }
 
 
@@ -332,29 +425,6 @@ u8 ParseCmd_R(char * pCmdStr, CMD_ST * pstCmd)
 }
 
 
-bool HfnParseActionP(char * pCmdStr, ACTION_ST * pstAction)
-{
-    s32 slSpdSeq = 0;
-    if (pCmdStr == NULL
-       || (*pCmdStr != 'P' && *pCmdStr != 'p'))
-    {
-        return false;
-    }
-
-    pCmdStr++;// 跳过字符[pP]
-
-    if (GetDigit(pCmdStr,&slSpdSeq) == false)
-    {
-        ERRINFO("速度指针解析错误");
-        return false;
-    }
-
-    pstAction->m_iActionType = ACTION_TYPE_POS;
-    pstAction->m_stActionPos.m_slPos = slSpdSeq;
- 
-    return true;
-}
-
 // speed set.
 u8 ParseCmd_P(char * pCmdStr, CMD_ST *pstCmd)
 {
@@ -385,11 +455,6 @@ u8 ParseCmd_P(char * pCmdStr, CMD_ST *pstCmd)
 }
 
 
-bool HfnParseActionS(char * pCmdStr, ACTION_ST * pstAction)
-{
-    return true;
-}
-
 // 设置IO. / shM7.
 // 信号名称 - shM7.
 // 格式: setio = sh + pos + sigName
@@ -397,97 +462,24 @@ bool HfnParseActionS(char * pCmdStr, ACTION_ST * pstAction)
 u8 ParseCmd_S(char * pCmdStr,  CMD_ST *pstCmd)
 {
     static s8 s_ascSigBuf[40];
-    static s8 s_ascPosBuf[40];
+    ACTION_ST stAction;
 
-    u8 ucSigLevel = 0xFF;
-    char * pEnd;
-    char * pStart;
-    char scBackup;
-    CONDITION_POS_ST stPos;
-    CONDITION_SIG_ST stSig;
-
-    if(pCmdStr == NULL)
+    if (HfnParseActionS(pCmdStr,&stAction) == false)
     {
-        return 0;
+        ERRINFO("S命令解析错误: %s\n",pCmdStr);
+        return false;
     }
 
-    fprintf(stderr,"\t%s:\t开始解析\n",pCmdStr);
-    if (*pCmdStr != 'S' && *pCmdStr != 's')
-    {
-        assert(0);
-        return 0;
-    }
-
-    pCmdStr++;
-    if (*pCmdStr == 'h' || *pCmdStr == 'H')
-    {
-        ucSigLevel = 1;
-    }
-    else if (*pCmdStr == 'l' || *pCmdStr == 'L')
-    {
-        ucSigLevel = 0;
-    }  
-    else
-    {
-        return 0; // command not recognized.
-    }
-
-    errno = 0;
-    pCmdStr++;
-
-    // 确认是否是位置,定位信号名.
-    if (*pCmdStr == POS_PREFIX) // 使用的是指定位置的方式
-    {
-        pStart = pCmdStr + 1;
-    }
-    else
-    {
-        pStart = pCmdStr;
-    }
-
-    // 查找有效信号名称.
-    if ((pEnd = strchr(pStart,'H')) == NULL
-            &&(pEnd = strchr(pStart,'M')) == NULL) 
-    {
-        ERRINFO("未指定有效的信号名");
-        return 0;
-    }
-
-    // 确认信号.
-
-    if (HfnGetSig(pEnd,&stSig) == false)
-    {
-        ERRINFO("未指定有效的信号名");
-    }
-    else
-    {
-        strcpy((char*)s_ascSigBuf,pEnd);
-        s_ascSigBuf[strlen(pEnd)] = '\0';
-    }
-
-    // 确定位置条件.
-    scBackup = *pEnd;
-    *pEnd = '\0';
-    if (HfnGetPos(pCmdStr,&stPos) == false)
-    {
-        ERRINFO("\t位置表达式非法:%s\n\t当前命令解析退出\n",pCmdStr);
-    }
-    else
-    {
-        strcpy((char*)s_ascPosBuf,pCmdStr);
-        s_ascPosBuf[strlen(pCmdStr)] = '\0';
-    }
-    *pEnd = scBackup;
+    GetSigNameByID(stAction.m_stActionSig.m_ucRid,(char *)s_ascSigBuf);
 
     // sh/sl.
     fprintf(stderr,"\t设置信号:%s 为 %d,位置:%d\n",
-            s_ascSigBuf,ucSigLevel,stPos.m_slPos);
+            s_ascSigBuf,stAction.m_stActionSig.m_slSetVal,stAction.m_stActionSig.m_slPos);
 
-#if 0
     pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stCond.m_ucCondtionType = COND_TYPE_ONCE;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_SPD;
-    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_stActionSpeed.m_slSpeed = val;
-#endif
+    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction.m_iActionType = ACTION_TYPE_SIG;
+    pstCmd->m_astNodeChain[pstCmd->m_ucLen].m_stAction = stAction;
+
     pstCmd->m_ucLen++;
 
     fprintf(stderr,"\t解析完成,命令ID = %u\n",(unsigned)pstCmd->m_ucLen);

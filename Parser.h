@@ -197,6 +197,8 @@ typedef struct tagActionSig
 {
     u8  m_ucRid;
     s32 m_slSetVal;
+    // the member below is ugly.
+    s32 m_slPos;
 }ACTION_SIG_ST;
 
 // 调整运动参数 - 目标速度.

@@ -42,7 +42,7 @@ POS_NAME_ST g_astSigTable[] =
 {
     {"MA" , 0},
     {"MB" , 1},
-    {"MC" , 2},
+    {"HC" , 2},
     {"MD" , 3},
     {"ME" , 4},
     {"M1" , 5},
@@ -55,15 +55,16 @@ POS_NAME_ST g_astSigTable[] =
     {"M8" , 12},
     {"M9" , 13},
     {"M10", 14},
+    {"MC" , 15},
 };
 
 
 s32 GetSigIndexByName(const char * pSigName)
 {
     int i  = 0;
-    for(;i < (int)ITEMS_OF(g_astPosTable);i++)
+    for(;i < (int)ITEMS_OF(g_astSigTable);i++)
     {
-        if (memcmp(g_astPosTable[i].m_pscName,pSigName,strlen(g_astPosTable[i].m_pscName)) == 0)
+        if (memcmp(g_astSigTable[i].m_pscName,pSigName,strlen(g_astSigTable[i].m_pscName)) == 0)
         {
             return i;
         }
@@ -85,4 +86,12 @@ bool GetPosValueByName(const char * pPosName, s32 *pslPosValue)
     }
 
     return false;
+}
+
+bool GetSigNameByID(s32 slSigID, char * pSigName)
+{
+    if ((u32)slSigID >= ITEMS_OF(g_astSigTable))
+        return false;
+    strcpy(pSigName,g_astSigTable[slSigID].m_pscName);
+    return true;
 }
