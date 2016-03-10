@@ -6,9 +6,9 @@
 #include "Parser.h"
 #include "SysCfg.h"
 
-// TODO: 1. 完成解析过程中对解析过程的填充.
-//       2. step 1完成后可以继续完成执行器部分
-//       3. 执行器完成后.实现了一些驱动无关的顶层设计.
+// TODO: 1. 完成解析过程中对解析过程的填充. DONE.
+//       2. step 1完成后可以继续完成执行器部分. -> 列入计划.
+//       3. 执行器完成后.实现了一些驱动无关的顶层设计. -> 列入一周计.
 //       4. 完成实际的驱动设计即可. (硬件设计完成后)
 //       5. 最终实现: 动作执行和回采的回环过程. 并调整回环测量过程以达到最终效果.
 
@@ -210,8 +210,6 @@ bool HfnGetPos( char * pCmdStr, CONDITION_POS_ST * pCondPos)
     // 可能的方式: 
     // A: 绝对 -120+-20
     // B: 相对 MX-+20, MA-MB
-    char *pStart;
-    char *pEnd;
     s32 slPos = 0;
 
     if (pCmdStr == NULL)

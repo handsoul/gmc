@@ -264,6 +264,10 @@ typedef struct tagRunState
     s32 m_slDstSpeed;
     // 目标位置
     s32 m_slDstPos;
+    // 当前速度
+    s32 m_slCurSpeed;
+    // 当前位置
+    s32 m_slCurPos;
 }RUN_STATE_ST;
 
 typedef struct tagExecuteUnit
