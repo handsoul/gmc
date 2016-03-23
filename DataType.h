@@ -14,6 +14,6 @@ typedef unsigned char bool;
     #define false 0
 #endif
 
-#define ITEMS_OF(array) (sizeof(array)/sizeof(array[0]))
+#define ITEMS_OF(_array_) (sizeof(_array_)/sizeof(_array_[0]))
 
 #endif // __DATATYPE_H__

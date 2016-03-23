@@ -1,7 +1,6 @@
 #include "Execute.h"
 #include "Parser.h"
 
-// 检查条件是否满足.
 static bool IsConditionSatisfy(const CONDITION_ST * pstCond, const RUN_STATE_ST * pstRunState)
 {
     if (pstCond->m_ucCondtionType == COND_TYPE_SIG)  // 信号条件达到要求
@@ -12,13 +11,12 @@ static bool IsConditionSatisfy(const CONDITION_ST * pstCond, const RUN_STATE_ST 
     }
     else if (pstCond->m_ucCondtionType == COND_TYPE_POS)
     {
-        return (abs(pstRunState->m_slCurPos - pstCond->m_stCondPos.m_slPos) <= 1); // 位置到达到时,不能按照精确位置，而是误差小于某值即可.
+        return (abs(pstRunState->m_slCurPos - pstCond->m_stCondPos.m_slPos) <= 1); 
     }
 
     return false;
 }
 
-// 执行action.
 static void DoAciton(ACTION_ST * pstAction, RUN_STATE_ST *pstRunState)
 {
     if (pstAction->m_iActionType == ACTION_TYPE_POS)
@@ -31,8 +29,9 @@ static void DoAciton(ACTION_ST * pstAction, RUN_STATE_ST *pstRunState)
     }
     else if (pstAction->m_iActionType == ACTION_TYPE_SIG)
     {
-        // 设置信号.
-        // TODO: 设置信号.
+        // todo: 
+        // operation on signal (valid for digital/analog output only) 
+        //
     }
 
     return;

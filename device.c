@@ -1,7 +1,6 @@
 #include "device.h"
 
 // 实现系统驱动的抽象
-
 s32 GetSigValue(s32 slRid)
 {
     return 0;

@@ -285,7 +285,7 @@ bool HfnParseActionP(char * pCmdStr, ACTION_ST * pstAction)
         return false;
     }
 
-    pstAction->m_iActionType = ACTION_TYPE_POS;
+    pstAction->m_iActionType = ACTION_TYPE_SPD;
     pstAction->m_stActionPos.m_slPos = slSpdSeq;
  
     return true;
